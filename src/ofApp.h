@@ -9,8 +9,18 @@ class ofApp : public ofBaseApp{
 		vector<ofVec2f> ControlPoint;
 		float PointSize;
 		float ConPointSize;
-		int AnchorIndex = -1;
-		int ConIndex = -1;
+		int forwardIndex = -1;
+		int centerIndex = -1;
+		int backwardIndex = -1;
+
+		ofVec2f Initdif;
+		struct control
+		{
+			ofVec2f backward;
+			ofVec2f center;
+			ofVec2f forward;
+		};
+		vector<control> Anchor;
 
 		float interval = 0.01;
 		int width, height;

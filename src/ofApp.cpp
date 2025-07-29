@@ -14,7 +14,18 @@ void ofApp::setup(){
 	AnchorPoint[0] = start;			AnchorPoint[1] = end;
 	ControlPoint[0] = startCon;		ControlPoint[1] = endCon;
 
+	Anchor.resize(2);
+	Initdif = ofVec2f(50, 0);
+	Anchor[0].backward = start - Initdif;
+	Anchor[0].center = start;
+	Anchor[0].forward = start + Initdif;
+
+	Anchor[1].backward = end - Initdif;
+	Anchor[1].center = end;
+	Anchor[1].forward = end + Initdif;
+
 	ofSetBackgroundColor(0);
+	ofEnableDepthTest();
 }
 
 //--------------------------------------------------------------
@@ -35,27 +46,33 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-	for (int i = 0; i < AnchorPoint.size(); i++) {
+	// 点の描画
+	for (int i = 0; i < Anchor.size(); i++) {
+		ofSetColor(ofColor::red);
+		ofDrawCircle(Anchor[i].backward, PointSize);
 		ofSetColor(255);
-		ofDrawCircle(AnchorPoint[i], PointSize);
-		if (i % 2 == 0) {
-			ofSetColor(ofColor::red);
-		}
-		else if (i % 2 == 1) {
-			ofSetColor(ofColor::green);
-		}
-		ofDrawCircle(ControlPoint[i], PointSize);
+		ofDrawCircle(Anchor[i].center, PointSize);
+		ofSetColor(ofColor::green);
+		ofDrawCircle(Anchor[i].forward, PointSize);
+	}
+
+	// 点と点
+	ofSetColor(255);
+	for (int i = 0; i < Anchor.size(); i++) {
+		ofDrawLine(Anchor[i].center, Anchor[i].backward);
+		ofDrawLine(Anchor[i].center, Anchor[i].forward);
 	}
 
 	// 曲線
 	ofSetColor(ofColor::green);
-	if (AnchorPoint.size() <= 2) { // 始点と終点しかない場合
-		for (float t = 0; t < 1.0; t += interval) {
-			ofVec2f p0 = Bezier(AnchorPoint[0], ControlPoint[0], ControlPoint[1], AnchorPoint[1], t);
-			ofVec2f p1 = Bezier(AnchorPoint[0], ControlPoint[0], ControlPoint[1], AnchorPoint[1], t + interval);
+	for (int i = 0; i < Anchor.size() - 1; i++) {
+		for (float t = 0; t < 1; t += interval) {
+			ofVec2f p0 = Bezier(Anchor[i].center, Anchor[i].forward, Anchor[i + 1].backward, Anchor[i + 1].center, t);
+			ofVec2f p1 = Bezier(Anchor[i].center, Anchor[i].forward, Anchor[i + 1].backward, Anchor[i + 1].center, t + interval);
 			ofDrawLine(p0, p1);
 		}
 	}
+	
 }
 
 //--------------------------------------------------------------
@@ -75,18 +92,19 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
-	if (button == OF_MOUSE_BUTTON_LEFT && ConIndex != -1) {
-		if (x >= 0 && x <= width && y >= 0 && y <= height) {
-			ControlPoint[ConIndex].set(x, y);
-		}
+	if (button == OF_MOUSE_BUTTON_LEFT && forwardIndex != -1) {
+		Anchor[forwardIndex].forward.set(x, y);
 	}
-	else if (button == OF_MOUSE_BUTTON_LEFT && AnchorIndex != -1) {
+	else if (button == OF_MOUSE_BUTTON_LEFT && backwardIndex != -1) {
+		Anchor[backwardIndex].backward.set(x, y);
+	}
+	else if (button == OF_MOUSE_BUTTON_LEFT && centerIndex != -1) {
 		if (x >= 0 && x <= width && y >= 0 && y <= height) {
-			if (AnchorIndex == 0 || AnchorIndex == AnchorPoint.size() - 1) {
-				AnchorPoint[AnchorIndex].y = y;
+			if (centerIndex == 0 || centerIndex == Anchor.size() - 1) {
+				Anchor[centerIndex].center.y = y;
 			}
 			else {
-				AnchorPoint[AnchorIndex].set(x, y);
+				Anchor[centerIndex].center.set(x, y);
 			}
 		}
 	}
@@ -96,30 +114,38 @@ void ofApp::mouseDragged(int x, int y, int button){
 void ofApp::mousePressed(int x, int y, int button){
 	ofVec2f mousePosition(x, y);
 	if (button == OF_MOUSE_BUTTON_LEFT) {
-		// 先に制御点の探索
-		for (int i = 0; i < ControlPoint.size(); i++) {
-			if (mousePosition.distance(ControlPoint[i]) <= PointSize) {
-				ConIndex = i;
+		for (int i = 0; i < Anchor.size(); i++) {
+			if (mousePosition.distance(Anchor[i].forward) <= PointSize) {
+				forwardIndex = i;
+				break;
+			}
+			else if (mousePosition.distance(Anchor[i].backward) <= PointSize) {
+				backwardIndex = i;
+				break;
+			}
+			else if (mousePosition.distance(Anchor[i].center) <= PointSize) {
+				centerIndex = i;
 				break;
 			}
 		}
-		// もし制御点上でなかったらアンカーポイントの探索
-		if (ConIndex == -1) {
-			for (int i = 0; i < AnchorPoint.size(); i++) {
-				if (mousePosition.distance(AnchorPoint[i]) <= PointSize) {
-					AnchorIndex = i;
-					break;
-				}
-			}
-		}
+	}
+
+	if (button == OF_MOUSE_BUTTON_RIGHT) {
+		control insertPoint = {
+			mousePosition - Initdif,
+			mousePosition,
+			mousePosition + Initdif
+		};
+		Anchor.insert(Anchor.end() - 1, insertPoint);
 	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
 	if (button == OF_MOUSE_BUTTON_LEFT) {
-		ConIndex = -1;
-		AnchorIndex = -1;
+		forwardIndex = -1;
+		centerIndex = -1;
+		backwardIndex = -1;
 	}
 }
 
