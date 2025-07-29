@@ -5,7 +5,6 @@ void ofApp::setup(){
 	width = ofGetWidth();
 	height = ofGetHeight();
 	PointSize = 20.0;
-	ConPointSize = 10.0;
 
 	start = ofVec2f(0, height);		startCon = ofVec2f(50, height);
 	end = ofVec2f(width, 0);		endCon = ofVec2f(width - 50, 0);
@@ -37,7 +36,7 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
 	for (int i = 0; i < AnchorPoint.size(); i++) {
-		ofSetColor(150);
+		ofSetColor(255);
 		ofDrawCircle(AnchorPoint[i], PointSize);
 		if (i % 2 == 0) {
 			ofSetColor(ofColor::red);
@@ -45,7 +44,7 @@ void ofApp::draw(){
 		else if (i % 2 == 1) {
 			ofSetColor(ofColor::green);
 		}
-		ofDrawCircle(ControlPoint[i], ConPointSize);
+		ofDrawCircle(ControlPoint[i], PointSize);
 	}
 
 	// 曲線
@@ -76,17 +75,52 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
-
+	if (button == OF_MOUSE_BUTTON_LEFT && ConIndex != -1) {
+		if (x >= 0 && x <= width && y >= 0 && y <= height) {
+			ControlPoint[ConIndex].set(x, y);
+		}
+	}
+	else if (button == OF_MOUSE_BUTTON_LEFT && AnchorIndex != -1) {
+		if (x >= 0 && x <= width && y >= 0 && y <= height) {
+			if (AnchorIndex == 0 || AnchorIndex == AnchorPoint.size() - 1) {
+				AnchorPoint[AnchorIndex].y = y;
+			}
+			else {
+				AnchorPoint[AnchorIndex].set(x, y);
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button){
-
+	ofVec2f mousePosition(x, y);
+	if (button == OF_MOUSE_BUTTON_LEFT) {
+		// 先に制御点の探索
+		for (int i = 0; i < ControlPoint.size(); i++) {
+			if (mousePosition.distance(ControlPoint[i]) <= PointSize) {
+				ConIndex = i;
+				break;
+			}
+		}
+		// もし制御点上でなかったらアンカーポイントの探索
+		if (ConIndex == -1) {
+			for (int i = 0; i < AnchorPoint.size(); i++) {
+				if (mousePosition.distance(AnchorPoint[i]) <= PointSize) {
+					AnchorIndex = i;
+					break;
+				}
+			}
+		}
+	}
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button){
-
+	if (button == OF_MOUSE_BUTTON_LEFT) {
+		ConIndex = -1;
+		AnchorIndex = -1;
+	}
 }
 
 //--------------------------------------------------------------

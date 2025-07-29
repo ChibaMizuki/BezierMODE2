@@ -9,6 +9,8 @@ class ofApp : public ofBaseApp{
 		vector<ofVec2f> ControlPoint;
 		float PointSize;
 		float ConPointSize;
+		int AnchorIndex = -1;
+		int ConIndex = -1;
 
 		float interval = 0.01;
 		int width, height;
