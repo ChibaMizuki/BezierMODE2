@@ -6,13 +6,8 @@ void ofApp::setup(){
 	height = ofGetHeight();
 	PointSize = 20.0;
 
-	start = ofVec2f(0, height);		startCon = ofVec2f(50, height);
-	end = ofVec2f(width, 0);		endCon = ofVec2f(width - 50, 0);
-
-	AnchorPoint.resize(2);
-	ControlPoint.resize(2);
-	AnchorPoint[0] = start;			AnchorPoint[1] = end;
-	ControlPoint[0] = startCon;		ControlPoint[1] = endCon;
+	start = ofVec2f(0, height);
+	end = ofVec2f(width, 0);
 
 	Anchor.resize(2);
 	Initdif = ofVec2f(50, 0);
@@ -92,19 +87,62 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button){
+	ofVec2f mousePosition(x, y);
+	// 制御点はアンカーに対して対象移動
 	if (button == OF_MOUSE_BUTTON_LEFT && forwardIndex != -1) {
-		Anchor[forwardIndex].forward.set(x, y);
+		ofVec2f currentPosition = Anchor[forwardIndex].forward;
+		ofVec2f newPosition(x - currentPosition.x, y - currentPosition.y);
+		// forwardは常に右側に位置する
+		if (Anchor[forwardIndex].center.x <= mousePosition.x) {
+			Anchor[forwardIndex].forward.set(x, y);
+			Anchor[forwardIndex].backward -= newPosition;
+		}
+		else if (Anchor[forwardIndex].center.x > mousePosition.x) {
+			Anchor[forwardIndex].forward.x = Anchor[forwardIndex].center.x;
+			Anchor[forwardIndex].backward.x = Anchor[forwardIndex].center.x;
+		}
+		
 	}
 	else if (button == OF_MOUSE_BUTTON_LEFT && backwardIndex != -1) {
-		Anchor[backwardIndex].backward.set(x, y);
+		// backwardは常に左側
+		ofVec2f currentPosition = Anchor[backwardIndex].backward;
+		ofVec2f newPosition(x - currentPosition.x, y - currentPosition.y);
+		if (Anchor[backwardIndex].center.x >= mousePosition.x) {
+			Anchor[backwardIndex].backward.set(x, y);
+			Anchor[backwardIndex].forward -= newPosition;
+		}
+		else if (Anchor[backwardIndex].center.x < mousePosition.x) {
+			Anchor[backwardIndex].backward.x = Anchor[backwardIndex].center.x;
+			Anchor[backwardIndex].forward.x = Anchor[backwardIndex].center.x;
+		}
+		
 	}
 	else if (button == OF_MOUSE_BUTTON_LEFT && centerIndex != -1) {
-		if (x >= 0 && x <= width && y >= 0 && y <= height) {
+		if (x > 0 && x < width && y >= 0 && y <= height) {
 			if (centerIndex == 0 || centerIndex == Anchor.size() - 1) {
 				Anchor[centerIndex].center.y = y;
 			}
 			else {
-				Anchor[centerIndex].center.set(x, y);
+				if (mousePosition.x <= Anchor[centerIndex + 1].center.x
+					&& mousePosition.x >= Anchor[centerIndex - 1].center.x) {
+					// アンカーと制御点が一緒に動くように
+					ofVec2f currentPosition = Anchor[centerIndex].center;
+					ofVec2f newPosition(x - currentPosition.x, y - currentPosition.y);
+					Anchor[centerIndex].center.set(x, y);
+					Anchor[centerIndex].backward += newPosition;
+					Anchor[centerIndex].forward += newPosition;
+				}
+				// アンカーの移動量を制限
+				else if (mousePosition.x > Anchor[centerIndex + 1].center.x) {
+					ofVec2f offset(Anchor[centerIndex].center - Anchor[centerIndex].backward);
+					Anchor[centerIndex].center.x = Anchor[centerIndex + 1].center.x;
+					Anchor[centerIndex].forward = Anchor[centerIndex].center + offset;
+				}
+				else if (mousePosition.x < Anchor[centerIndex - 1].center.x) {
+					ofVec2f offset(Anchor[centerIndex].center - Anchor[centerIndex].forward);
+					Anchor[centerIndex].center.x = Anchor[centerIndex - 1].center.x;
+					Anchor[centerIndex].backward = Anchor[centerIndex].center + offset;
+				}
 			}
 		}
 	}
@@ -131,12 +169,17 @@ void ofApp::mousePressed(int x, int y, int button){
 	}
 
 	if (button == OF_MOUSE_BUTTON_RIGHT) {
-		control insertPoint = {
+		if (x > 0 && x < width && y >= 0 && y <= height) {
+			control insertPoint = {
 			mousePosition - Initdif,
 			mousePosition,
 			mousePosition + Initdif
-		};
-		Anchor.insert(Anchor.end() - 1, insertPoint);
+			};
+			Anchor.insert(Anchor.end() - 1, insertPoint);
+		}
+		sort(Anchor.begin(), Anchor.end(), [](const control& a, const control& b) {
+			return a.center.x < b.center.x;
+			});
 	}
 }
 
