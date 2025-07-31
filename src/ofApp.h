@@ -21,6 +21,8 @@ class ofApp : public ofBaseApp{
 			ofVec2f forward;
 		};
 		vector<control> Anchor;
+		ofVec2f forwardDistance;
+		ofVec2f backwardDistance;
 
 		float interval = 0.01;
 		int width, height;
